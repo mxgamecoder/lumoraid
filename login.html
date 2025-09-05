@@ -122,7 +122,6 @@
 
       <!-- Step 2: Password -->
       <div id="step2" style="display:none;">
-        <p id="feelsGood" style="color:#00ff00; font-weight:bold;">Feels good ✅</p>
         <div class="relative">
           <input type="password" name="password" id="passwordInput" placeholder="Password" required minlength="6">
           <span class="password-toggle" id="togglePassword">👁️</span>
@@ -176,11 +175,14 @@
   });
 
   // Step 1: Next button
-  nextBtn.addEventListener('click', () => {
+  nextBtn.addEventListener('click', async () => {
     const identifier = identifierInput.value.trim();
     if (!identifier) return showToast("⚠️ Please enter your email or username", "error");
+
     step1.style.display = 'none';
     step2.style.display = 'block';
+
+    await showToast("Feels good ✅", "success");
   });
 
   // Step 2: Submit login
