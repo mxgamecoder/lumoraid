@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="icon" type="image/png" href="lumora.png">
+  <title>Email Verification - Lumora ID</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #000;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      background: #111;
+      padding: 25px;
+      border-radius: 12px;
+      border: 2px solid #4b0082;
+      box-shadow: 0 0 18px rgba(75, 0, 130, 0.7);
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    h2 { margin-bottom: 10px; color: #fff; }
+    p { font-size: 13px; margin-bottom: 10px; color: #aaa; }
+
+    input {
+      width: 90%;
+      padding: 12px;
+      border: 2px solid #4b0082;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      background: #1a1a1a;
+      color: #fff;
+      text-align: center;
+      font-size: 16px;
+      letter-spacing: 4px;
+      outline: none;
+      transition: border 0.2s ease, box-shadow 0.2s ease;
+    }
+    input:focus { border-color: #6a0dad; box-shadow: 0 0 8px #6a0dad; }
+    input::placeholder { color: #888; font-style: italic; }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+      justify-content: center;
+    }
+
+    button {
+      flex: 1;
+      background: #4b0082;
+      color: #fff;
+      border: 2px solid #4b0082;
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      transition: background 0.2s ease, border 0.2s ease;
+    }
+    button:hover { background: #5c00a3; border-color: #5c00a3; }
+    button:disabled { background: #333; border-color: #333; cursor: not-allowed; }
+
+    .status { margin-top: 8px; font-size: 12px; color: #888; }
+
+    /* Toast styles */
+    .toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #4b0082;
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 8px;
+      opacity: 0;
+      transition: opacity .3s ease, top .3s ease;
+      font-size: 14px;
+      z-index: 9999;
+      box-shadow: 0 0 8px #4b0082;
+    }
+    .toast.show { opacity: 1; top: 40px; }
+    .toast.error { background: #b00020; }
+    .toast.success { background: #007e33; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Verify Your Email</h2>
+    <p>Enter the 6-digit code sent to your email.</p>
+    <p style="color: #ffcc00; font-size: 12px;">
+      ⚠️ Sometimes the code can take up to 5 minutes or go to spam.
+    </p>
+
+    <form id="verifyForm">
+      <input type="text" id="codeInput" placeholder="123456" maxlength="6" required>
+      <div class="btn-row">
+        <button type="submit" id="verifyBtn">Verify Email</button>
+        <button type="button" id="resendBtn">Resend Code</button>
+      </div>
+      <p id="resendStatus" class="status"></p>
+    </form>
+  </div>
+
+<script>
+  // ✅ Block logged-in users
+  const token = localStorage.getItem('mxapi_token');
+  const id = localStorage.getItem('mxapi_id');
+  if (token && id) {
+    window.location.href = "dashboard.html";
+  }
+
+  // ✅ Toast
+  function showToast(message, type="info") {
+    return new Promise(resolve=>{
+      const toast=document.createElement("div");
+      toast.textContent=message;
+      toast.className=`toast ${type}`;
+      document.body.appendChild(toast);
+      setTimeout(()=>toast.classList.add("show"),100);
+      setTimeout(()=>{
+        toast.classList.remove("show");
+        setTimeout(()=>{toast.remove();resolve();},300);
+      },2000);
+    });
+  }
+
+  // ✅ Platform ID
+  const urlParams = new URLSearchParams(window.location.search);
+  const platformId = urlParams.get("id");
+  const email = urlParams.get("email") || localStorage.getItem("email");
+
+  const resendBtn=document.getElementById("resendBtn");
+  const resendStatus=document.getElementById("resendStatus");
+  const verifyForm=document.getElementById("verifyForm");
+  const codeInput=document.getElementById("codeInput");
+  const verifyBtn=document.getElementById("verifyBtn");
+
+  if (!email) {
+    resendStatus.textContent = "⚠️ Email not found in URL.";
+    resendBtn.disabled = true;
+  }
+
+  let resendCount=0;
+
+  // ✅ Verify email
+  verifyForm.addEventListener("submit", async e=>{
+    e.preventDefault();
+    const code=codeInput.value.trim();
+    if(!code){ await showToast("❌ Enter the 6-digit code","error"); return; }
+
+    verifyBtn.disabled=true;
+    verifyBtn.textContent="Verifying...";
+
+    try{
+      const res=await fetch("https://mxapi-lnc.onrender.com/api/auth/verify-email",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({email,code})
+      });
+      const data=await res.json();
+      if(!res.ok) throw new Error(data.msg||"Verification failed");
+
+      localStorage.removeItem("email");
+      await showToast("✅ Email verified successfully!","success");
+
+      setTimeout(()=>{
+        if (platformId === "vaultx") {
+          window.location.href=`login.html?id=vaultx`;
+        } else if (platformId === "mxapi") {
+          window.location.href=`login.html?id=mxapi`;
+        } else {
+          window.location.href=`login.html`;
+        }
+      },1200);
+
+    }catch(err){
+      await showToast("❌ "+err.message,"error");
+    }finally{
+      verifyBtn.disabled=false;
+      verifyBtn.textContent="Verify Email";
+    }
+  });
+
+  // ✅ Resend code
+  resendBtn.addEventListener("click",async()=>{
+    if(resendCount>=2||!email) return;
+    resendCount++;
+    resendBtn.disabled=true;
+    resendStatus.textContent="Resending...";
+
+    try{
+      const res=await fetch("https://mxapi-lnc.onrender.com/api/auth/send-code",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({email})
+      });
+      const data=await res.json();
+      if(!res.ok) throw new Error(data.msg||"Failed to resend");
+
+      await showToast(`✅ Code resent (${resendCount}/2)`,"success");
+      resendStatus.textContent=`✅ Code resent (${resendCount}/2)`;
+
+      if(resendCount<2) resendBtn.disabled=false;
+      else resendStatus.textContent+=" | Limit reached";
+    }catch(err){
+      resendCount--;
+      resendStatus.textContent="❌ "+err.message;
+      resendStatus.style.color="#f44";
+      resendBtn.disabled=false;
+    }
+  });
+</script>
+</body>
+</html>

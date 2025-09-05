@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SMXL Runner</title>
+<style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f0f0f0; }
+    .file-input { margin-bottom: 20px; }
+    pre { white-space: pre-wrap; word-wrap: break-word; }
+</style>
+</head>
+<body>
+
+<h2>SMXL 1.0 Runner</h2>
+<input type="file" class="file-input" id="smxlFile" accept=".smxl">
+<div id="renderArea"></div>
+
+<script>
+// ===== Browser Detection =====
+function detectBrowser() {
+    const ua = navigator.userAgent;
+    if (ua.includes("MXGameCoder")) return "mxgamecoder";
+    return "html";
+}
+
+// ===== SMXL → HTML with Colors =====
+function convertSMXLtoHTML(smxlContent) {
+    const tagMap = {
+        "box": "div",
+        "note1": "h1",
+        "note2": "h2",
+        "note3": "h3",
+        "note4": "h4",
+        "note5": "h5",
+        "note6": "h6",
+        "text": "p"
+    };
+
+    // Extract top section for <head>
+    let topMatch = smxlContent.match(/\(top\)([\s\S]*?)\(\/top\)/);
+    if (topMatch) {
+        const topContent = topMatch[1];
+        const titleMatch = topContent.match(/\(title\)([\s\S]*?)\(\/title\)/);
+        if (titleMatch) document.title = titleMatch[1].trim();
+        // Links
+        const linkRegex = /\(link ([^\)]*)\)/g;
+        let linkMatch;
+        while ((linkMatch = linkRegex.exec(topContent)) !== null) {
+            const a = document.createElement("link");
+            linkMatch[1].split(" ").forEach(attr => {
+                const [key, value] = attr.split("=");
+                if (key && value) a.setAttribute(key, value.replace(/"/g,""));
+            });
+            document.head.appendChild(a);
+        }
+        // Icons
+        const iconRegex = /\(icon ([^\)]*)\)/g;
+        let iconMatch;
+        while ((iconMatch = iconRegex.exec(topContent)) !== null) {
+            const i = document.createElement("link");
+            iconMatch[1].split(" ").forEach(attr => {
+                const [key, value] = attr.split("=");
+                if (key && value) i.setAttribute(key, value.replace(/"/g,""));
+            });
+            i.rel = "icon";
+            document.head.appendChild(i);
+        }
+    }
+
+    // Extract body section
+    let bodyMatch = smxlContent.match(/\(body\)([\s\S]*?)\(\/body\)/);
+    let bodyHTML = "";
+    if (bodyMatch) {
+        bodyHTML = bodyMatch[1];
+
+        function applyStyles(content, level=0){
+            for(const smxlTag in tagMap){
+                const htmlTag = tagMap[smxlTag];
+                const openRegex = new RegExp(`\\(${smxlTag}([^)]*)\\)`,"g");
+                const closeRegex = new RegExp(`\\(/${smxlTag}\\)`,"g");
+                let style="";
+                if(smxlTag.startsWith("note")){
+                    const sizes = {"note1":"32px","note2":"28px","note3":"24px","note4":"20px","note5":"16px","note6":"14px"};
+                    const colors = {"note1":"#e63946","note2":"#f1faee","note3":"#a8dadc","note4":"#457b9d","note5":"#1d3557","note6":"#2a9d8f"};
+                    style=`style="color:${colors[smxlTag]||'black'}; font-size:${sizes[smxlTag]}; margin:8px 0;"`;
+                } else if(smxlTag==="box"){
+                    const indent = 20*level;
+                    style=`style="border:1px solid #999; padding:10px; margin:10px ${indent}px; border-radius:8px; background:#f8f9fa;"`;
+                } else if(smxlTag==="text"){
+                    style=`style="margin:4px 0; font-size:16px;"`;
+                }
+                content = content.replace(openRegex, `<${htmlTag} ${style}>`);
+                content = content.replace(closeRegex, `</${htmlTag}>`);
+            }
+
+            // Nested boxes
+            let nestedBoxRegex = /\(box\)([\s\S]*?)\(\/box\)/g;
+            let match;
+            while((match = nestedBoxRegex.exec(content))!==null){
+                const innerHTML = applyStyles(match[1], level+1);
+                content = content.replace(match[0], `<div style="border:1px solid #999; padding:10px; margin:10px ${20*level}px; border-radius:8px; background:#f8f9fa;">${innerHTML}</div>`);
+            }
+            return content;
+        }
+
+        bodyHTML = applyStyles(bodyHTML);
+    }
+
+    return bodyHTML;
+}
+
+// ===== Render SMXL =====
+function renderSMXL(smxlContent){
+    const browser = detectBrowser();
+    const renderArea = document.getElementById("renderArea");
+    if(browser==="mxgamecoder"){
+        renderArea.innerHTML=`<pre>${smxlContent}</pre>`;
+    } else {
+        renderArea.innerHTML = convertSMXLtoHTML(smxlContent);
+    }
+}
+
+// ===== File Input =====
+document.getElementById("smxlFile").addEventListener("change",function(e){
+    const file = e.target.files[0];
+    if(file){
+        const reader = new FileReader();
+        reader.onload = function(e){
+            renderSMXL(e.target.result);
+        }
+        reader.readAsText(file);
+    }
+});
+</script>
+</body>
+</html>

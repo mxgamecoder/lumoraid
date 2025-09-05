@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="icon" type="image/png" href="lumora.png">
+<title>Lumora ID - Register</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #000;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .container {
+      background: #111;
+      padding: 25px;
+      border-radius: 12px;
+      border: 2px solid #4b0082;
+      box-shadow: 0 0 18px rgba(75, 0, 130, 0.7);
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+    h2 { margin-bottom: 20px; color: #fff; }
+    input {
+      width: 90%;
+      display: block;
+      margin: 0 auto 12px;
+      padding: 12px;
+      border: 2px solid #4b0082;
+      border-radius: 8px;
+      background: #1a1a1a;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+      transition: border 0.2s ease, box-shadow 0.2s ease;
+    }
+    input:focus { border-color: #6a0dad; box-shadow: 0 0 8px #6a0dad; }
+    input::placeholder { color: #888; font-style: italic; }
+    button {
+      background: #4b0082;
+      color: #fff;
+      border: 2px solid #4b0082;
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 95%;
+      margin: 10px auto 0;
+      font-size: 15px;
+      font-weight: bold;
+      transition: background 0.2s ease, border 0.2s ease;
+      display: block;
+    }
+    button:hover { background: #5c00a3; border-color: #5c00a3; }
+    .form-step { display: none; }
+    .form-step.active { display: block; }
+    .relative { position: relative; }
+    .password-toggle {
+      position: absolute;
+      right: 20px;
+      top: 12px;
+      cursor: pointer;
+    }
+    /* Loader */
+    .circle {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #4b0082, #111);
+      margin: 40px auto;
+      animation: float 2s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%,100% { transform: translateY(0); }
+      50% { transform: translateY(-15px); }
+    }
+    #loaderText { font-size: 16px; color: #fff; margin-top: 20px; }
+  </style>
+  <script>
+    // Block already logged-in users from visiting guest pages
+    const token = localStorage.getItem('mxapi_token');
+    const id = localStorage.getItem('mxapi_id');
+
+    if (token && id) {
+      window.location.href = "dashboard.html"; // redirect to dashboard
+    }
+  </script>
+</head>
+<body>
+
+<div class="container">
+  <h2>Create Your Lumora ID</h2>
+
+  <form id="registerForm">
+    <div class="form-step active">
+      <input type="text" name="name" placeholder="Enter your full name" required>
+      <button class="nextBtn">Next ➡️</button>
+    </div>
+    <div class="form-step">
+      <input type="text" name="username" placeholder="Choose a username" required>
+      <button class="nextBtn">Next ➡️</button>
+    </div>
+    <div class="form-step">
+      <input type="email" name="email" placeholder="Enter your email" required>
+      <button class="nextBtn">Next ➡️</button>
+    </div>
+    <div class="form-step">
+      <input type="tel" name="phone" placeholder="+234..." required>
+      <button class="nextBtn">Next ➡️</button>
+    </div>
+    <div class="form-step">
+      <input type="date" name="dob" required>
+      <button class="nextBtn">Next ➡️</button>
+    </div>
+    <div class="form-step">
+      <div class="relative">
+        <input type="password" name="password" id="passwordInput" placeholder="Create a password" required minlength="10">
+        <span class="password-toggle" id="togglePassword">👁️</span>
+      </div>
+      <button type="submit" id="submitBtn">Register</button>
+    </div>
+  </form>
+</div>
+
+<script>
+  const urlParams = new URLSearchParams(window.location.search);
+  const platformId = urlParams.get("id");
+
+  // ✅ Toast with Promise
+  function showToast(message, type="info") {
+    return new Promise((resolve) => {
+      const toast = document.createElement("div");
+      toast.textContent = message;
+      toast.className = `toast ${type}`;
+      document.body.appendChild(toast);
+
+      setTimeout(()=>toast.classList.add("show"),100);
+      setTimeout(()=>{
+        toast.classList.remove("show");
+        setTimeout(()=>{ toast.remove(); resolve(); },300);
+      },2000);
+    });
+  }
+
+  // ✅ Toast styles
+  const style = document.createElement("style");
+  style.textContent = `
+    .toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #4b0082;
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 8px;
+      opacity: 0;
+      transition: opacity .3s ease, top .3s ease;
+      font-size: 14px;
+      z-index: 9999;
+      box-shadow: 0 0 8px #4b0082;
+    }
+    .toast.show { opacity:1; top:40px; }
+    .toast.error{ background:#b00020; }
+    .toast.success{ background:#007e33; }
+  `;
+  document.head.appendChild(style);
+
+  // Password toggle
+  function setupPasswordToggle(id,toggleId){
+    const input=document.getElementById(id);
+    const toggle=document.getElementById(toggleId);
+    toggle.addEventListener("click",()=>{
+      const type=input.type==="password"?"text":"password";
+      input.type=type;
+      toggle.textContent=type==="password"?"👁️":"🙈";
+    });
+  }
+  setupPasswordToggle("passwordInput","togglePassword");
+
+  const form=document.getElementById("registerForm");
+  const submitBtn=document.getElementById("submitBtn");
+  const BASE_URL="https://mxapi-lnc.onrender.com/api/auth";
+  const steps=Array.from(form.querySelectorAll(".form-step"));
+  let currentStep=0;
+  function showStep(i){ steps.forEach((s,idx)=>s.style.display=idx===i?"block":"none"); }
+  showStep(currentStep);
+
+  // ✅ Next button logic with checks
+  form.querySelectorAll(".nextBtn").forEach((btn,index)=>{
+    btn.addEventListener("click",async(e)=>{
+      e.preventDefault();
+      const input=steps[index].querySelector("input");
+      const value=input.value.trim();
+      if(!value){ await showToast("⚠️ Please fill this field","error"); return; }
+
+      if(input.name==="username"){
+        try{const r=await fetch(`${BASE_URL}/check-username/${encodeURIComponent(value)}`);
+        const j=await r.json();
+        if(!j.available){ await showToast("📛 Username taken!","error"); return; }}catch{ await showToast("⚠️ Network error","error"); return;}
+      }
+      if(input.name==="email"){
+        try{const r=await fetch(`${BASE_URL}/check-email/${encodeURIComponent(value)}`);
+        const j=await r.json();
+        if(!j.available){ await showToast("📧 Email exists!","error"); return; }}catch{ await showToast("⚠️ Network error","error"); return;}
+      }
+      if(input.name==="phone"){
+        try{const r=await fetch(`${BASE_URL}/check-phone/${encodeURIComponent(value)}`);
+        const j=await r.json();
+        if(!j.available){ await showToast("📱 Phone used!","error"); return; }}catch{ await showToast("⚠️ Network error","error"); return;}
+      }
+      if (input.name === "dob") {
+        const dob = new Date(value);
+        const today = new Date();
+        let age = today.getFullYear() - dob.getFullYear();
+        const m = today.getMonth() - dob.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+
+        if (age < 12) {
+          await showToast("🚫 You must be at least 12 years old", "error");
+          return;
+        }
+      }
+
+      await showToast("✅ Looks good!","success");
+      currentStep++;
+      if(currentStep<steps.length) showStep(currentStep);
+    });
+  });
+
+  // ✅ Final submit
+  form.addEventListener("submit",async(e)=>{
+    e.preventDefault();
+    submitBtn.disabled=true;
+    submitBtn.textContent="Registering...";
+
+    const fd=new FormData(form);
+    const data={
+      name:fd.get("name").trim(),
+      username:fd.get("username").trim(),
+      email:fd.get("email").trim(),
+      phone:fd.get("phone").trim(),
+      dob:fd.get("dob"),
+      password:fd.get("password"),
+    };
+
+    if (data.password.length < 10) {
+      await showToast("🔑 Password must be at least 10 characters", "error");
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Register";
+      return;
+    }
+
+    try{
+      const r=await fetch(`${BASE_URL}/register`,{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(data)
+      });
+      const j=await r.json();
+      if(!r.ok){ await showToast(`❌ ${j.msg||"Failed"}`,"error"); submitBtn.disabled=false; submitBtn.textContent="Register"; return; }
+
+      // ✅ Success → show loader
+      document.querySelector(".container").style.display="none";
+      const loader=document.createElement("div");
+      loader.innerHTML=`<div style="text-align:center;">
+        <div class="circle"></div>
+        <p id="loaderText">⚙️ Setting up things...</p>
+      </div>`;
+      document.body.appendChild(loader);
+
+      const msgs=["⚙️ Setting up things...","🚀 Creating account...","🔑 Finalizing..."];
+      let i=0;
+      const interval=setInterval(()=>{
+        i++;
+        if(i<msgs.length){ document.getElementById("loaderText").textContent=msgs[i]; }
+        else {
+          clearInterval(interval);
+          setTimeout(()=>{
+            if (platformId) {
+              window.location.href =
+                `verify.html?email=${encodeURIComponent(data.email)}&id=${platformId}`;
+            } else {
+              window.location.href =
+                `verify.html?email=${encodeURIComponent(data.email)}`;
+            }
+          },1000);
+        }
+      },1500);
+
+    }catch(err){ console.error(err); await showToast("❌ Network error","error"); submitBtn.disabled=false; submitBtn.textContent="Register"; }
+  });
+</script>
+</body>
+</html>

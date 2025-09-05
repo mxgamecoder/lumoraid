@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lumora ID - Connect Your Account</title>
+  <link rel="icon" type="image/png" href="lumora.png">
+<script>
+  // Get platform ID from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const platformId = urlParams.get('id'); // vaultx, mxapi, etc.
+</script>
+<style>
+  body { margin:0; font-family:Arial,sans-serif; background:#0D0D0D; color:#EAEAEA; display:flex; justify-content:center; align-items:center; height:100vh; }
+  .container { background:#1A1A1A; padding:30px; border-radius:12px; max-width:400px; width:90%; text-align:center; }
+  h1 { color:#7A3CF0; margin-bottom:20px; }
+  button { margin:10px; padding:10px 20px; background:#7A3CF0; border:none; border-radius:6px; color:#0D0D0D; font-weight:bold; cursor:pointer; }
+  button:hover { opacity:0.8; }
+  a { color:#9F7AEA; display:block; margin-top:15px; font-size:0.9rem; cursor:pointer; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Lumora ID</h1>
+  <p id="platformMsg">Connecting your platform...</p>
+
+  <button id="loginBtn">Login</button>
+  <button id="signupBtn">Signup</button>
+  <a id="forgotLink">Forgot Password?</a>
+</div>
+
+<script>
+  // Update message based on platform
+  const platformMsg = document.getElementById('platformMsg');
+  if(platformId === 'vaultx') platformMsg.textContent = 'Connect your VaultX account to Lumora ID';
+  else if(platformId === 'mxapi') platformMsg.textContent = 'Connect your MXAPI account to Lumora ID';
+  else platformMsg.textContent = 'Connect your account to Lumora ID';
+
+  // Redirect function with id parameter preserved
+  const loginBtn = document.getElementById('loginBtn');
+  const signupBtn = document.getElementById('signupBtn');
+  const forgotLink = document.getElementById('forgotLink');
+
+  loginBtn.addEventListener('click', ()=> {
+    window.location.href = `login.html?id=${platformId}`;
+  });
+
+  signupBtn.addEventListener('click', ()=> {
+    window.location.href = `signup.html?id=${platformId}`;
+  });
+
+  forgotLink.addEventListener('click', ()=>{
+    window.location.href = `forgot-password.html?id=${platformId}`;
+  });
+</script>
+  <script>
+    // Block already logged-in users from visiting guest pages
+    const token = localStorage.getItem('mxapi_token');
+    const id = localStorage.getItem('mxapi_id');
+
+    if (token && id) {
+      window.location.href = "dashboard.html"; // redirect to dashboard
+    }
+  </script>
+</body>
+</html>

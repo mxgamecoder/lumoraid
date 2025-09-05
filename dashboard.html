@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Lumora ID - Dashboard</title>
+<link rel="icon" type="image/png" href="lumora.png">
+<style>
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #000;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding-top: 50px;
+  }
+  .container {
+    width: 100%;
+    max-width: 600px;
+    padding: 20px;
+    text-align: center;
+  }
+  .greeting-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 40px;
+  }
+  .greeting {
+    font-size: 1.4rem;
+    color: #9F7AEA;
+    font-weight: bold;
+  }
+  .logout-icon {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #f00;
+    font-size: 1.3rem;
+    transition: transform 0.2s ease;
+  }
+  .logout-icon:hover {
+    transform: scale(1.2);
+  }
+  .box-row {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .box {
+    width: 45%;
+    padding: 20px 0;
+    border-radius: 12px;
+    background: #111;
+    border: 2px solid #4b0082;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    text-align: center;
+    font-size: 16px;
+    font-weight: bold;
+    color: #fff;
+  }
+  .box:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 0 15px rgba(75,0,130,0.7);
+  }
+  .toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #4b0082;
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 8px;
+    opacity: 0;
+    transition: opacity .3s ease, top .3s ease;
+    font-size: 14px;
+    z-index: 9999;
+    box-shadow: 0 0 8px #4b0082;
+  }
+  .toast.show { opacity:1; top:40px; }
+  .toast.error{ background:#b00020; }
+  .toast.success{ background:#007e33; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="greeting-container">
+    <div id="greeting" class="greeting">Loading...</div>
+    <button class="logout-icon" id="logoutBtn" title="Logout">⏻</button>
+  </div>
+
+  <div class="box-row">
+    <div class="box" id="vaultxBox">VaultX</div>
+    <div class="box" id="mxapiBox">MXAPI</div>
+  </div>
+</div>
+
+<script>
+  // Redirect if token/id missing
+  const token = localStorage.getItem("mxapi_token");
+  const id = localStorage.getItem("mxapi_id");
+  if (!token || !id) {
+    window.location.href = "index.html";
+  }
+
+  // Toast
+  function showToast(msg,type="info"){
+    return new Promise(res=>{
+      const t=document.createElement("div");
+      t.textContent=msg; t.className=`toast ${type}`;
+      document.body.appendChild(t);
+      setTimeout(()=>t.classList.add("show"),100);
+      setTimeout(()=>{t.classList.remove("show"); setTimeout(()=>{t.remove();res();},300)},2000);
+    });
+  }
+
+  // Greeting
+  const greetings = ["How far","Wassup","Hello","Yo","Welcome back","Good vibes"];
+  const emojis = ["🔥","⚡","🚀","🥲","😎","✨","👑"];
+  function randomPick(arr){return arr[Math.floor(Math.random()*arr.length)];}
+
+  const username = localStorage.getItem("mxapi_username") || "User";
+  const shortName = username.length>5 ? username.slice(0,5)+"..." : username;
+  document.getElementById("greeting").textContent = `${randomPick(greetings)} ${shortName} ${randomPick(emojis)}`;
+
+  // VaultX + MXAPI buttons
+  document.getElementById("vaultxBox").addEventListener("click",()=>{
+    if(token && id){
+      window.location.href=`https://vaultlite.name.ng/dashboard?token=${encodeURIComponent(token)}&id=${id}`;
+    }else showToast("⚠️ Please login again to VaultX","error");
+  });
+  document.getElementById("mxapiBox").addEventListener("click",()=>{
+    const apikey=localStorage.getItem("mxapi_apikey")||"";
+    if(token && id){
+      window.location.href=`https://mxapi-lnc.onrender.com/dashboard.html?token=${encodeURIComponent(token)}&id=${id}&apikey=${encodeURIComponent(apikey)}`;
+    }else showToast("⚠️ Please login again to MXAPI","error");
+  });
+
+  // Logout icon
+  document.getElementById("logoutBtn").addEventListener("click",()=>{
+    localStorage.removeItem("mxapi_token");
+    localStorage.removeItem("mxapi_id");
+    localStorage.removeItem("mxapi_username");
+    localStorage.removeItem("mxapi_apikey");
+    showToast("👋 Logged out!","success").then(()=>{window.location.href="index.html";});
+  });
+</script>
+</body>
+</html>
